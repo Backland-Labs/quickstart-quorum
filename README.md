@@ -34,6 +34,9 @@ chmod +x run_service.sh
 ./run_service.sh configs/config_quorum.json
 ```
 
+## Container Setup
+After you've run the above script, there should be two containers running in Docker. You'll want to focus on the one that has the `agent_0` name associated with it.
+
 #### Supported agents
 
 | Agent | Config path | Docs |
