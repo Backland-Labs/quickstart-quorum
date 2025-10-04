@@ -17,10 +17,13 @@ Ensure your machine satisfies the requirements:
 - [Poetry](https://python-poetry.org/docs/) `>=1.8.3`
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
-## Resource Requirements
-
-- You need native assets of the chain on which your agent will run in one of your wallets.
-- You need an RPC for your agent instance. We recommend [Quicknode RPC](https://www.quicknode.com/).
+## Environment
+```bash
+export OPERATE_PASSWORD="pw"
+export BASE_LEDGER_RPC=http://localhost:8545
+export STAKING_CONTRACT_ADDRESS=0xeF662b5266db0AeFe55554c50cA6Ad25c1DA16fb
+export STAKING_PROGRAM=‘custom_staking’
+```
 
 ## Run the Service
 
@@ -28,9 +31,8 @@ Clone this repository locally and execute:
 
 ```bash
 chmod +x run_service.sh
-./run_service.sh <agent_config.json>
+./run_service.sh configs/config_quorum.json
 ```
-where `agent_config.json` is the path to your agent configuration file. Check the `configs/` directory for available configurations of different agents.
 
 #### Supported agents
 
