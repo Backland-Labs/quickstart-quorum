@@ -64,6 +64,11 @@ anvil --fork-url https://mainnet.base.org --auto-impersonate
     - Exposes port 8716
     - Has the correct env vars set
 5. Post request to the /agent-run endpoint
+6. Exec into container to review detailed logs at app/logs.txt
+7. Confirm that an attestation was made (check via the logs or query the attestation tracker directly on the Anvil fork)
+8. If successful, trigger the endpoint 3 more times.
+9. Use an LLM to advance the time on the Anvil fork by 24 hours.
+10. Run the claim_rewards script.
 
 #### Supported agents
 
