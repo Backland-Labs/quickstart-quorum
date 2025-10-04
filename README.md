@@ -25,6 +25,9 @@ export STAKING_CONTRACT_ADDRESS=0xeF662b5266db0AeFe55554c50cA6Ad25c1DA16fb
 export STAKING_PROGRAM=‘custom_staking’
 ```
 
+Olas Base Token Account: 0x54330d28ca3357F294334BDC454a032e7f353416
+Olas Token Whale Account: 0xC8F7030a4e25585624e2Fc792255a547255Cd77c
+
 ## Run the Service
 
 Clone this repository locally and execute:
@@ -36,6 +39,31 @@ chmod +x run_service.sh
 
 ## Container Setup
 After you've run the above script, there should be two containers running in Docker. You'll want to focus on the one that has the `agent_0` name associated with it.
+
+
+## Foundry
+1. Download and install Foundry
+
+```bash
+brew install foundry
+```
+
+## Testing Process
+1. Start a local Anvil fork
+
+```bash
+anvil --fork-url https://mainnet.base.org --auto-impersonate
+```
+
+2. Run the service script and go through intial account funding
+    - Tip: prompt an LLM to send the anvil commands on your behalf: "Fund XXXX account with 1 ETH
+    - When funding Olas provide the Olas token address (above)
+
+3. Confirm two containers are running.
+4. Confirm service.yaml has the following:
+    - Exposes port 8716
+    - Has the correct env vars set
+5. Post request to the /agent-run endpoint
 
 #### Supported agents
 
