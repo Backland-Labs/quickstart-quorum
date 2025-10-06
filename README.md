@@ -19,10 +19,7 @@ Ensure your machine satisfies the requirements:
 
 ## Environment
 ```bash
-export OPERATE_PASSWORD="pw"
-export BASE_LEDGER_RPC=http://localhost:8545
-export STAKING_CONTRACT_ADDRESS=0xeF662b5266db0AeFe55554c50cA6Ad25c1DA16fb
-export STAKING_PROGRAM=‘custom_staking’
+export OPERATE_PASSWORD="pw" && export BASE_LEDGER_RPC=http://localhost:8545 && export STAKING_CONTRACT_ADDRESS=0xeF662b5266db0AeFe55554c50cA6Ad25c1DA16fb && export STAKING_PROGRAM='custom_staking'
 ```
 
 Olas Base Token Account: 0x54330d28ca3357F294334BDC454a032e7f353416
@@ -34,7 +31,7 @@ Clone this repository locally and execute:
 
 ```bash
 chmod +x run_service.sh
-./run_service.sh configs/config_quorum.json
+./run_service.sh configs/config_quorum.json --attended=false
 ```
 
 ## Container Setup
