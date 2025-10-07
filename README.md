@@ -16,21 +16,46 @@ Ensure your machine satisfies the requirements:
 - Python `==3.10`
 - [Poetry](https://python-poetry.org/docs/) `>=1.8.3`
 - [Docker Compose](https://docs.docker.com/compose/install/)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (for local testing)
 
-## Resource Requirements
+## Testing on Local Anvil Fork
 
-- You need native assets of the chain on which your agent will run in one of your wallets.
-- You need an RPC for your agent instance. We recommend [Quicknode RPC](https://www.quicknode.com/).
+For comprehensive testing instructions including staking verification, see [TESTING_GUIDE.md](TESTING_GUIDE.md).
 
-## Run the Service
+### Quick Setup
+
+1. **Set Environment Variables:**
+
+```bash
+export OPERATE_PASSWORD=""
+export BASE_LEDGER_RPC=http://localhost:8545
+export STAKING_CONTRACT_ADDRESS=0xeF662b5266db0AeFe55554c50cA6Ad25c1DA16fb
+export STAKING_PROGRAM='custom_staking'
+```
+
+2. **Start Anvil Fork:**
+
+```bash
+anvil --fork-url https://mainnet.base.org --auto-impersonate
+```
+
+3. **Deploy and Run Service:**
+
+```bash
+./run_service.sh configs/config_quorum.json --attended=false
+```
+
+4. **Access Agent UI:** `http://localhost:8716`
+
+For detailed testing workflow, monitoring, and troubleshooting, see [TESTING_GUIDE.md](TESTING_GUIDE.md).
+
+## Production Deployment
 
 Clone this repository locally and execute:
 
 ```bash
-chmod +x run_service.sh
-./run_service.sh <agent_config.json>
+./run_service.sh configs/config_quorum.json
 ```
-where `agent_config.json` is the path to your agent configuration file. Check the `configs/` directory for available configurations of different agents.
 
 #### Supported agents
 

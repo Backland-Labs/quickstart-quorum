@@ -1,0 +1,77 @@
+name: quorum
+author: backlandlabs
+version: 0.2.0
+description: Quorum-based consensus service for decentralized applications.
+aea_version: '>=1.0.0, <2.0.0'
+license: Apache-2.0
+fingerprint:
+  README.md: bafybeigkh3bwwjzgbl3jlcbovrf67ikisndygihsutgqlijhgie3z44ao4
+fingerprint_ignore_patterns: []
+agent: backlandlabs/quorum:0.1.0:bafybeie65whvrfjdobhuqadutwpcwx22bnpty2yveu6j4x2dcithfhlnea
+number_of_agents: 1
+deployment:
+  agent:
+    ports:
+      0:
+        8716: 8716
+---
+public_id: valory/ledger:0.19.0
+type: connection
+config:
+  ledger_apis:
+    base:
+      address: ${BASE_LEDGER_RPC:str:https://methodical-aged-haze.base-mainnet.quiknode.pro/be2a6f7bf2b041c1bcc41cf4a2880b239afcdeb7/}
+      chain_id: ${BASE_CHAIN_ID:int:8453}
+      poa_chain: ${IS_POA_CHAIN:bool:false}
+      default_gas_price_strategy: ${DEFAULT_GAS_PRICE_STRATEGY:str:eip1559}
+---
+public_id: valory/configs:0.19.0
+type: connection
+config:
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:str: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}
+  EAS_CONTRACT_ADDRESS: ${EAS_CONTRACT_ADDRESS:str:0xF095fE4b23958b08D38e52d5d5674bBF0C03cbF6}
+  EAS_SCHEMA_UID: ${EAS_SCHEMA_UID:str:0xc93c2cd5d2027a300cc7ca3d22b36b5581353f6dabab6e14eb41daf76d5b0eb4}
+  ATTESTATION_TRACKER_ADDRESS: ${ATTESTATION_TRACKER_ADDRESS:str:0x9BC8c713a159a028aC5590ffE42DaF0d9A6467AC}
+  BASE_RPC_URL: ${BASE_RPC_URL:str:http://host.docker.internal:8545}
+  BASE_LEDGER_RPC: ${BASE_LEDGER_RPC:str:http://host.docker.internal:8545}
+  RPC_URL: ${RPC_URL:str:http://host.docker.internal:8545}
+  CHAIN_ID: ${CHAIN_ID:int:8453}
+  BASE_SAFE_ADDRESS: ${BASE_SAFE_ADDRESS:str:0x39D9195fF4691ed1C9254EfA367a1c65D46C227E}
+  SAFE_CONTRACT_ADDRESSES: ${SAFE_CONTRACT_ADDRESSES:str:}
+  DEBUG: ${DEBUG:bool:false}
+  HOST: ${HOST:str:0.0.0.0}
+  PORT: ${PORT:int:8716}
+  HEALTH_CHECK_PORT: ${HEALTH_CHECK_PORT:int:8716}
+  LOG_LEVEL: ${LOG_LEVEL:str:INFO}
+  LOG_FILE_PATH: ${LOG_FILE_PATH:str:log.txt}
+  MONITORED_DAOS: ${MONITORED_DAOS:str:quorum-ai.eth}
+  AGENT_CONFIDENCE_THRESHOLD: ${AGENT_CONFIDENCE_THRESHOLD:float:0.7}
+  MAX_PROPOSALS_PER_RUN: ${MAX_PROPOSALS_PER_RUN:int:3}
+  PROPOSAL_FETCH_TIMEOUT: ${PROPOSAL_FETCH_TIMEOUT:int:30}
+  VOTE_EXECUTION_TIMEOUT: ${VOTE_EXECUTION_TIMEOUT:int:60}
+  MAX_RETRY_ATTEMPTS: ${MAX_RETRY_ATTEMPTS:int:3}
+  RETRY_DELAY_SECONDS: ${RETRY_DELAY_SECONDS:int:5}
+  HEALTH_CHECK_PATH: ${HEALTH_CHECK_PATH:str:/healthcheck}
+  FAST_TRANSITION_THRESHOLD: ${FAST_TRANSITION_THRESHOLD:int:5}
+  SNAPSHOT_GRAPHQL_ENDPOINT: ${SNAPSHOT_GRAPHQL_ENDPOINT:str:https://testnet.hub.snapshot.org/graphql}
+  SNAPSHOT_HUB_URL: ${SNAPSHOT_HUB_URL:str:https://testnet.seq.snapshot.org/}
+  SNAPSHOT_API_KEY: ${SNAPSHOT_API_KEY:str:}
+  VOTING_STRATEGY: ${VOTING_STRATEGY:str:balanced}
+  DRY_RUN_DEFAULT: ${DRY_RUN_DEFAULT:bool:false}
+  WITHDRAWAL_MODE: ${WITHDRAWAL_MODE:bool:false}
+  AGENT_ADDRESS: ${AGENT_ADDRESS:str:}
+  STORE_PATH: ${STORE_PATH:str:}
+  ACTIVITY_CHECK_INTERVAL: ${ACTIVITY_CHECK_INTERVAL:int:3600}
+  PROPOSAL_CHECK_INTERVAL: ${PROPOSAL_CHECK_INTERVAL:int:300}
+  MIN_TIME_BEFORE_DEADLINE: ${MIN_TIME_BEFORE_DEADLINE:int:1800}
+  DECISION_OUTPUT_DIR: ${DECISION_OUTPUT_DIR:str:decisions}
+  DECISION_FILE_FORMAT: ${DECISION_FILE_FORMAT:str:json}
+  MAX_DECISION_FILES: ${MAX_DECISION_FILES:int:100}
+  ATTESTATION_CHAIN: ${ATTESTATION_CHAIN:str:base}
+  STAKING_TOKEN_CONTRACT_ADDRESS: ${STAKING_TOKEN_CONTRACT_ADDRESS:str:}
+  ACTIVITY_CHECKER_CONTRACT_ADDRESS: ${ACTIVITY_CHECKER_CONTRACT_ADDRESS:str:}
+  SERVICE_REGISTRY_TOKEN_UTILITY_CONTRACT: ${SERVICE_REGISTRY_TOKEN_UTILITY_CONTRACT:str:}
+  ETHEREUM_LEDGER_RPC: ${ETHEREUM_LEDGER_RPC:str:}
+  GNOSIS_LEDGER_RPC: ${GNOSIS_LEDGER_RPC:str:}
+  MODE_LEDGER_RPC: ${MODE_LEDGER_RPC:str:}
+  CELO_LEDGER_RPC: ${CELO_LEDGER_RPC:str:}
