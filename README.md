@@ -16,62 +16,46 @@ Ensure your machine satisfies the requirements:
 - Python `==3.10`
 - [Poetry](https://python-poetry.org/docs/) `>=1.8.3`
 - [Docker Compose](https://docs.docker.com/compose/install/)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (for local testing)
 
-## Environment
-```bash
-export OPERATE_PASSWORD="pw" && export BASE_LEDGER_RPC=http://localhost:8545 && export STAKING_CONTRACT_ADDRESS=0xeF662b5266db0AeFe55554c50cA6Ad25c1DA16fb && export STAKING_PROGRAM='custom_staking'
-```
+## Testing on Local Anvil Fork
 
-Olas Base Token Account: 0x54330d28ca3357F294334BDC454a032e7f353416
-Olas Token Whale Account: 0xC8F7030a4e25585624e2Fc792255a547255Cd77c
+For comprehensive testing instructions including staking verification, see [TESTING_GUIDE.md](TESTING_GUIDE.md).
 
-## Run the Service
+### Quick Setup
 
-Clone this repository locally and execute:
+1. **Set Environment Variables:**
 
 ```bash
-chmod +x run_service.sh
-./run_service.sh configs/config_quorum.json --attended=false
+export OPERATE_PASSWORD=""
+export BASE_LEDGER_RPC=http://localhost:8545
+export STAKING_CONTRACT_ADDRESS=0xeF662b5266db0AeFe55554c50cA6Ad25c1DA16fb
+export STAKING_PROGRAM='custom_staking'
 ```
 
-## Container Setup
-After you've run the above script, there should be two containers running in Docker. You'll want to focus on the one that has the `agent_0` name associated with it.
-
-
-## Foundry
-1. Download and install Foundry
-
-```bash
-brew install foundry
-```
-
-## Testing Process
-1. Start a local Anvil fork
+2. **Start Anvil Fork:**
 
 ```bash
 anvil --fork-url https://mainnet.base.org --auto-impersonate
 ```
 
-Or load from state file:
+3. **Deploy and Run Service:**
 
 ```bash
-anvil --load-state <(cat anvil_state.json | xxd -r -p | gunzip) --auto-impersonate
+./run_service.sh configs/config_quorum.json --attended=false
 ```
 
-2. Run the service script and go through intial account funding
-    - Tip: prompt an LLM to send the anvil commands on your behalf: "Fund XXXX account with 1 ETH
-    - When funding Olas provide the Olas token address (above)
+4. **Access Agent UI:** `http://localhost:8716`
 
-3. Confirm two containers are running.
-4. Confirm service.yaml has the following:
-    - Exposes port 8716
-    - Has the correct env vars set
-5. Post request to the /agent-run endpoint
-6. Exec into container to review detailed logs at app/logs.txt
-7. Confirm that an attestation was made (check via the logs or query the attestation tracker directly on the Anvil fork)
-8. If successful, trigger the endpoint 3 more times.
-9. Use an LLM to advance the time on the Anvil fork by 24 hours.
-10. Run the claim_rewards script.
+For detailed testing workflow, monitoring, and troubleshooting, see [TESTING_GUIDE.md](TESTING_GUIDE.md).
+
+## Production Deployment
+
+Clone this repository locally and execute:
+
+```bash
+./run_service.sh configs/config_quorum.json
+```
 
 #### Supported agents
 
