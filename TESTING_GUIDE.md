@@ -33,6 +33,8 @@ Then saves the Anvil state to `anvil_state.json` for later restoration.
 ./fund_wallets.sh
 ```
 
+- You may need to run this a few times to fully fund the wallets/contracts
+
 **Or specify custom RPC:**
 
 ```bash
@@ -80,13 +82,119 @@ anvil --load-state anvil_state.json --auto-impersonate
 
 This preserves all funded balances and contract state.
 
-## What You're Testing
+## Service Configuration
 
-The agent must successfully:
-1. Stake in the OLAS staking contract
-2. Make attestations at a rate of ~1 per 24 hours (liveness check)
-3. Accrue staking rewards based on activity
-4. Claim accumulated rewards after 72+ hours
+The `example_service.yaml` file provides a reference configuration for the Quorum agent service.
+
+### Key Configuration Sections
+
+**Port Mapping:**
+- Exposes port `8716` for the agent UI and API endpoints
+
+**Network Configuration:**
+- `BASE_LEDGER_RPC`: RPC endpoint for Base network (defaults to `http://host.docker.internal:8545` for local Anvil)
+- `CHAIN_ID`: Base mainnet chain ID (`8453`)
+
+**Contract Addresses:**
+- `EAS_CONTRACT_ADDRESS`: Ethereum Attestation Service contract
+- `ATTESTATION_TRACKER_ADDRESS`: Tracks voting attestations for staking
+- `BASE_SAFE_ADDRESS`: Safe multisig address for the service
+
+**Agent Behavior:**
+- `MONITORED_DAOS`: Which DAOs to monitor (default: `quorum-ai.eth`)
+- `AGENT_CONFIDENCE_THRESHOLD`: Minimum confidence to vote (`0.7`)
+- `MAX_PROPOSALS_PER_RUN`: Proposals to process per execution (`3`)
+- `VOTING_STRATEGY`: How the agent votes (`balanced`)
+
+**Environment Variables:**
+All values use the format `${VAR_NAME:type:default}` and can be overridden via environment variables.
+
+### When to Modify
+
+You typically don't need to modify this file for testing. However, you might customize:
+- `PORT` if 8716 conflicts with another service
+- `MONITORED_DAOS` to watch different DAOs
+- `DEBUG` to enable verbose logging
+- `DRY_RUN_DEFAULT` to test without making on-chain transactions
+
+The deployed service will use this configuration merged with values from `configs/config_quorum.json`.
+
+## Testing Against Testnet or Mainnet
+
+While this guide focuses on local Anvil testing, you can also test against live networks.
+
+### Configuration Changes
+
+**1. Set Environment Variables for Live Network:**
+
+For Base Mainnet:
+```bash
+export OPERATE_PASSWORD="your-secure-password"
+export BASE_LEDGER_RPC=https://mainnet.base.org  # Or your RPC provider URL
+export STAKING_CONTRACT_ADDRESS=0xeF662b5266db0AeFe55554c50cA6Ad25c1DA16fb
+export STAKING_PROGRAM='custom_staking'
+```
+
+For Base Sepolia Testnet:
+```bash
+export OPERATE_PASSWORD="your-secure-password"
+export BASE_LEDGER_RPC=https://sepolia.base.org
+export STAKING_CONTRACT_ADDRESS=<testnet-staking-contract>
+export STAKING_PROGRAM='custom_staking'
+```
+
+**2. Deploy Service:**
+```bash
+./run_service.sh configs/config_quorum.json
+```
+
+The service will prompt you to fund wallets with real ETH and OLAS tokens.
+
+
+### Testing Workflow on Live Networks
+
+1. **Deploy and stake** service (`./run_service.sh configs/config_quorum.json`)
+2. **Fund wallets** when prompted (use faucets for testnet, purchase for mainnet)
+3. **Trigger attestations** via `curl -X POST http://localhost:8716/agent-run`
+4. **Monitor status** with `./staking_report.py`
+5. **Wait 24+ hours** for first checkpoint (real time, no fast-forward)
+6. **Continue activity** to maintain liveness
+7. **Wait 72+ hours** minimum staking period
+8. **Claim rewards** with `./claim_staking_rewards.sh configs/config_quorum.json`
+
+### Recommended Testing Path
+
+1. **Local Anvil** → Quick validation, iterate on issues
+2. **Testnet** → Verify with real network conditions, no cost
+3. **Mainnet** → Production deployment with real value
+
+## Agent API Endpoints
+
+Once containers are running, the agent exposes several HTTP endpoints on `http://localhost:8716`:
+
+### Trigger Vote Decision
+
+**POST** `http://localhost:8716/agent-run`
+
+Manually triggers the agent to check for proposals and make voting decisions. This creates attestations that count toward staking liveness.
+
+**Example:**
+```bash
+curl -X POST http://localhost:8716/agent-run
+```
+
+### View API Documentation
+
+**GET** `http://localhost:8716/docs`
+
+Opens interactive API documentation showing all available endpoints with descriptions and request/response schemas.
+
+**Access in browser:** `http://localhost:8716/docs`
+
+### Other Useful Endpoints
+
+- **GET** `/healthcheck` - Check if agent is running
+- **GET** `/` - Basic service information
 
 ## Testing Workflow
 
@@ -120,7 +228,10 @@ Track staking performance across multiple time periods to simulate 24-hour check
 **Expected:** Checkpoint 0 showing initial attestations and zero rewards.
 
 ```bash
-# 2. Trigger 2-3 attestations via http://localhost:8716
+# 2. Trigger 2-3 attestations
+curl -X POST http://localhost:8716/agent-run
+# Wait a few seconds between calls
+curl -X POST http://localhost:8716/agent-run
 
 # 3. Advance time by 25 hours and record checkpoint
 ./test_staking_checkpoints.py --advance 25
@@ -183,7 +294,10 @@ cast rpc evm_increaseTime 259200 && cast rpc evm_mine
 
 **Cause:** Insufficient attestations for time elapsed (need ~1 per 24 hours).
 
-**Solution:** Trigger more attestations via `http://localhost:8716`.
+**Solution:** Trigger more attestations:
+```bash
+curl -X POST http://localhost:8716/agent-run
+```
 
 ### No Rewards Accruing
 **Symptom:** Accrued rewards remain at 0.00 OLAS.
@@ -233,9 +347,9 @@ docker logs $(docker ps --filter "name=quorum" --format "{{.Names}}" | grep "_ab
 - [ ] Environment variables set (verify: `echo $BASE_LEDGER_RPC`)
 - [ ] Service deployed and staked (`./run_service.sh configs/config_quorum.json --attended=false`)
 - [ ] Both containers running (`docker ps` shows 2 containers)
-- [ ] Agent UI accessible (`http://localhost:8716`)
+- [ ] Agent UI accessible (`http://localhost:8716/docs`)
 - [ ] Initial checkpoint recorded (`./test_staking_checkpoints.py --checkpoint`)
-- [ ] Attestations triggered (via UI, verify with `./staking_report.py`)
+- [ ] Attestations triggered (`curl -X POST http://localhost:8716/agent-run`, verify with `./staking_report.py`)
 - [ ] Liveness passing (`./staking_report.py` shows "✅ PASS")
 - [ ] Time advanced (`./test_staking_checkpoints.py --advance 25`)
 - [ ] Rewards accruing (`./staking_report.py` shows OLAS > 0)
