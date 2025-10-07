@@ -52,6 +52,12 @@ brew install foundry
 anvil --fork-url https://mainnet.base.org --auto-impersonate
 ```
 
+Or load from state file:
+
+```bash
+anvil --load-state <(cat anvil_state.json | xxd -r -p | gunzip) --auto-impersonate
+```
+
 2. Run the service script and go through intial account funding
     - Tip: prompt an LLM to send the anvil commands on your behalf: "Fund XXXX account with 1 ETH
     - When funding Olas provide the Olas token address (above)
