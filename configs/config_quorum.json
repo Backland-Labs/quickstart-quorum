@@ -79,6 +79,12 @@
             "description": "Attestation schema UID for Quorum",
             "value": "0xc93c2cd5d2027a300cc7ca3d22b36b5581353f6dabab6e14eb41daf76d5b0eb4",
             "provision_type": "computed"
+        },
+        "EAS_CONTRACT_ADDRESS": {
+            "name": "EAS_CONTRACT_ADDRESS",
+            "description": "Attestation schema UID for Quorum",
+            "value": "0xF095fE4b23958b08D38e52d5d5674bBF0C03cbF6",
+            "provision_type": "computed"
         }
     }
 }
