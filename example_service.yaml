@@ -20,7 +20,7 @@ type: connection
 config:
   ledger_apis:
     base:
-      address: ${BASE_LEDGER_RPC:str:https://methodical-aged-haze.base-mainnet.quiknode.pro/be2a6f7bf2b041c1bcc41cf4a2880b239afcdeb7/}
+      address: ${BASE_LEDGER_RPC:str:https://cosmopolitan-cosmological-resonance.base-mainnet.quiknode.pro/b4c827323f0a8012212429b0bd4a72a060c5373c/}
       chain_id: ${BASE_CHAIN_ID:int:8453}
       poa_chain: ${IS_POA_CHAIN:bool:false}
       default_gas_price_strategy: ${DEFAULT_GAS_PRICE_STRATEGY:str:eip1559}
@@ -37,7 +37,7 @@ config:
   RPC_URL: ${RPC_URL:str:http://host.docker.internal:8545}
   CHAIN_ID: ${CHAIN_ID:int:8453}
   BASE_SAFE_ADDRESS: ${BASE_SAFE_ADDRESS:str:0x39D9195fF4691ed1C9254EfA367a1c65D46C227E}
-  SAFE_CONTRACT_ADDRESSES: ${SAFE_CONTRACT_ADDRESSES:str:}
+  SAFE_CONTRACT_ADDRESSES: ${SAFE_CONTRACT_ADDRESSES:{"base":"0x7dF2A42C5a9006B16E6c7e6Ac750cdf336489c80"}}
   DEBUG: ${DEBUG:bool:false}
   HOST: ${HOST:str:0.0.0.0}
   PORT: ${PORT:int:8716}

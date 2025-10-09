@@ -20,15 +20,15 @@
         }
     },
     "env_variables": {
-        "SAFE_CONTRACT_ADDRESSES": {
+        "CONNECTION_CONFIGS_CONFIG_SAFE_CONTRACT_ADDRESSES": {
             "name": "Safe contract addresses",
             "description": "JSON string of Safe addresses per chain",
-            "value": "{\"base\":\"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266\"}",
+            "value": "",
             "provision_type": "user"
         },
         "MONITORED_DAOS": {
             "name": "Monitored DAOs",
-            "description": "Default DAO for testing",
+            "description": "Default DAO for agent.",
             "value": "quorum-ai.eth",
             "provision_type": "user"
         },
@@ -61,6 +61,24 @@
             "description": "The URL for Snapshot's testnet hub.",
             "value": "https://testnet.seq.snapshot.org/",
             "provision_type": "user"
+        },
+        "SNAPSHOT_GRAPHQL_ENDPOINT": {
+            "name": "SNAPSHOT_GRAPHQL_ENDPOINT",
+            "description": "The GraphQL endpoint for Snapshot's testnet.",
+            "value": "https://testnet.hub.snapshot.org/graphql",
+            "provision_type": "computed"
+        },
+        "SNAPSHOT_HUB_URL": {
+            "name": "SNAPSHOT_HUB_URL",
+            "description": "The URL for Snapshot's testnet hub.",
+            "value": "https://testnet.seq.snapshot.org/",
+            "provision_type": "computed"
+        },
+        "EAS_SCHEMA_UID": {
+            "name": "EAS_SCHEMA_UID",
+            "description": "Attestation schema UID for Quorum",
+            "value": "0xc93c2cd5d2027a300cc7ca3d22b36b5581353f6dabab6e14eb41daf76d5b0eb4",
+            "provision_type": "computed"
         }
     }
 }

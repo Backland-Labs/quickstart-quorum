@@ -18,7 +18,7 @@ SCRIPT_PATH = Path(__file__).resolve().parent
 
 # Contract addresses
 ATTESTATION_TRACKER = "0x9BC8c713a159a028aC5590ffE42DaF0d9A6467AC"
-EAS_CONTRACT = "0x4200000000000000000000000000000000000021"
+EAS_CONTRACT = "0xF095fE4b23958b08D38e52d5d5674bBF0C03cbF6"
 OLAS_TOKEN = "0x54330d28ca3357F294334BDC454a032e7f353416"
 
 # Staking ABIs (inline for simplicity)
@@ -220,7 +220,7 @@ ATTESTATION_TRACKER_ABI = [
     "name": "mapMultisigAttestations",
     "inputs": [
       {
-        "name": "",
+        "name": "", 
         "type": "address",
         "internalType": "address"
       }
@@ -336,10 +336,11 @@ def load_service_config() -> dict:
         sys.exit(1)
 
     # Find the service directory (should be only one)
-    service_dirs = [d for d in operate_dir.iterdir() if d.is_dir()]
+    # Skip any services with "invalid_" prefix
+    service_dirs = [d for d in operate_dir.iterdir() if d.is_dir() and not d.name.startswith("invalid_")]
 
     if not service_dirs:
-        print("Error: No service found in .operate/services")
+        print("Error: No valid service found in .operate/services")
         sys.exit(1)
 
     if len(service_dirs) > 1:
@@ -381,11 +382,11 @@ def main():
     ledger_config = chain_config.get("ledger_config", {})
 
     service_id = chain_data.get("token")
-    multisig = chain_data.get("multisig")
+    multisig = "0x7dF2A42C5a9006B16E6c7e6Ac750cdf336489c80"
     staking_contract_addr = chain_data.get("user_params", {}).get("staking_program_id")
 
-    # Get RPC from environment variable or config
-    rpc_url = os.getenv("BASE_LEDGER_RPC") or ledger_config.get("rpc")
+    # Get RPC from environment variable, config, or use hardcoded default
+    rpc_url = os.getenv("BASE_LEDGER_RPC") or ledger_config.get("rpc") or "https://cosmopolitan-cosmological-resonance.base-mainnet.quiknode.pro/b4c827323f0a8012212429b0bd4a72a060c5373c/"
 
     if not rpc_url:
         print("Error: No RPC URL found.")
