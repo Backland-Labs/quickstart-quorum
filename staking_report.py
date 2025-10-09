@@ -460,11 +460,15 @@ def main():
         try:
             voting_stats = tracker.functions.getVotingStats(multisig).call()
             if voting_stats:
-                print(f"\nVoting breakdown:")
-                vote_labels = ["For", "Against", "Abstain"]
+                print(f"\nVoting statistics:")
+                # Note: The AttestationTracker contract returns [attestationCount, attestationCount, 0]
+                # These represent: [casted votes, voting opportunities, no voting opportunities]
+                # NOT individual vote choices (For/Against/Abstain)
+                vote_labels = ["Casted votes", "Voting opportunities", "No voting opportunities"]
                 for i, count in enumerate(voting_stats[:3]):
-                    label = vote_labels[i] if i < len(vote_labels) else f"Choice {i}"
+                    label = vote_labels[i] if i < len(vote_labels) else f"Stat {i}"
                     print(f"  {label}: {count}")
+                print(f"\nNote: The contract tracks attestation counts, not individual vote choices.")
         except Exception:
             pass  # Voting stats not available
 
