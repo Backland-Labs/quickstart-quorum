@@ -13,8 +13,8 @@
             "use_mech_marketplace": true,
             "fund_requirements": {
                 "0x0000000000000000000000000000000000000000": {
-                    "agent": 500000000000000000,
-                    "safe": 1500000000000000000
+                    "agent": 0,
+                    "safe": 0
                 }
             }
         }
