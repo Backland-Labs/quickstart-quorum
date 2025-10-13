@@ -356,6 +356,45 @@ def load_service_config() -> dict:
         return json.load(f)
 
 
+def get_agent_addresses(service_dir: Path) -> list[str]:
+    """Extract agent addresses from service deployment."""
+    agent_addresses = []
+
+    # First try the top-level keys.json
+    keys_file = service_dir / "keys.json"
+    if keys_file.exists():
+        try:
+            with open(keys_file) as f:
+                keys_data = json.load(f)
+                if isinstance(keys_data, list):
+                    for key_entry in keys_data:
+                        address = key_entry.get("address")
+                        if address:
+                            agent_addresses.append(address)
+        except Exception:
+            pass
+
+    # If not found, look for keys.json files in agent directories
+    if not agent_addresses:
+        deployment_dir = service_dir / "deployment"
+        if deployment_dir.exists():
+            for agent_dir in deployment_dir.iterdir():
+                if agent_dir.is_dir():
+                    keys_file = agent_dir / "keys.json"
+                    if keys_file.exists():
+                        try:
+                            with open(keys_file) as f:
+                                keys_data = json.load(f)
+                                if isinstance(keys_data, list) and len(keys_data) > 0:
+                                    address = keys_data[0].get("address")
+                                    if address:
+                                        agent_addresses.append(address)
+                        except Exception:
+                            pass
+
+    return agent_addresses
+
+
 def print_header(text: str):
     """Print a section header."""
     print("\n" + "=" * 60)
@@ -374,6 +413,10 @@ def main():
 
     # Load configuration
     print("Loading service configuration...")
+    operate_dir = SCRIPT_PATH / ".operate" / "services"
+    service_dirs = [d for d in operate_dir.iterdir() if d.is_dir() and not d.name.startswith("invalid_")]
+    service_dir = service_dirs[0] if service_dirs else None
+
     config = load_service_config()
 
     # Extract relevant data
@@ -382,8 +425,11 @@ def main():
     ledger_config = chain_config.get("ledger_config", {})
 
     service_id = chain_data.get("token")
-    multisig = "0x7dF2A42C5a9006B16E6c7e6Ac750cdf336489c80"
+    multisig = "0x36Da714086a53F7658408D2e8a049a17eb4A90D5"
     staking_contract_addr = chain_data.get("user_params", {}).get("staking_program_id")
+
+    # Get agent addresses
+    agent_addresses = get_agent_addresses(service_dir) if service_dir else []
 
     # Get RPC from environment variable, config, or use hardcoded default
     rpc_url = os.getenv("BASE_LEDGER_RPC") or ledger_config.get("rpc") or "https://cosmopolitan-cosmological-resonance.base-mainnet.quiknode.pro/b4c827323f0a8012212429b0bd4a72a060c5373c/"
@@ -441,10 +487,8 @@ def main():
         nonces = service_info[2]
         stake_start_time = service_info[3]
 
-        if service_multisig.lower() != multisig.lower():
-            print(f"\n⚠️  Warning: Multisig mismatch!")
-            print(f"   Config: {multisig}")
-            print(f"   Staking: {service_multisig}")
+        # Use the multisig from the staking contract
+        multisig = service_multisig
 
         # Attestation activity
         print_subheader("Attestation Activity")
@@ -462,9 +506,9 @@ def main():
             if voting_stats:
                 print(f"\nVoting statistics:")
                 # Note: The AttestationTracker contract returns [attestationCount, attestationCount, 0]
-                # These represent: [casted votes, voting opportunities, no voting opportunities]
+                # These represent: [Voting Decision, voting opportunities, no voting opportunities]
                 # NOT individual vote choices (For/Against/Abstain)
-                vote_labels = ["Casted votes", "Voting opportunities", "No voting opportunities"]
+                vote_labels = ["Voting Decision", "Voting opportunities", "No voting opportunities"]
                 for i, count in enumerate(voting_stats[:3]):
                     label = vote_labels[i] if i < len(vote_labels) else f"Stat {i}"
                     print(f"  {label}: {count}")
@@ -520,8 +564,61 @@ def main():
         multisig_eth = w3.eth.get_balance(multisig)
         multisig_olas = olas.functions.balanceOf(multisig).call()
 
-        print(f"Multisig ETH:        {wei_to_eth(multisig_eth)} ETH")
-        print(f"Multisig OLAS:       {wei_to_olas(multisig_olas)} OLAS")
+        print(f"Multisig ({multisig}):")
+        print(f"  ETH:               {wei_to_eth(multisig_eth)} ETH")
+        print(f"  OLAS:              {wei_to_olas(multisig_olas)} OLAS")
+
+        # Show agent balances
+        if agent_addresses:
+            print(f"\nAgent Balances:")
+            total_agent_eth = 0
+            for i, agent_addr in enumerate(agent_addresses):
+                agent_eth = w3.eth.get_balance(agent_addr)
+                total_agent_eth += agent_eth
+                print(f"  Agent {i} ({agent_addr}):")
+                print(f"    ETH:             {wei_to_eth(agent_eth)} ETH")
+
+            print(f"\n  Total Agent ETH:   {wei_to_eth(total_agent_eth)} ETH")
+
+        # Show funding requirements
+        print_subheader("Funding Requirements")
+
+        # Load the service config to get fund requirements
+        try:
+            config_file = SCRIPT_PATH / "configs" / "config_quorum.json"
+            if config_file.exists():
+                with open(config_file) as f:
+                    service_config = json.load(f)
+                    base_config = service_config.get("configurations", {}).get("base", {})
+                    fund_reqs = base_config.get("fund_requirements", {})
+                    eth_reqs = fund_reqs.get("0x0000000000000000000000000000000000000000", {})
+
+                    agent_req = eth_reqs.get("agent", 0)
+                    safe_req = eth_reqs.get("safe", 0)
+
+                    print(f"Per Agent:           {wei_to_eth(agent_req)} ETH")
+                    print(f"Safe:                {wei_to_eth(safe_req)} ETH")
+
+                    # Calculate if balances meet requirements
+                    num_agents = len(agent_addresses) if agent_addresses else 1
+                    total_required_agents = agent_req * num_agents
+
+                    print(f"\nTotal Required:")
+                    print(f"  Agents ({num_agents}):      {wei_to_eth(total_required_agents)} ETH")
+                    print(f"  Safe:              {wei_to_eth(safe_req)} ETH")
+                    print(f"  TOTAL:             {wei_to_eth(total_required_agents + safe_req)} ETH")
+
+                    # Check if funded adequately
+                    total_actual = multisig_eth + (total_agent_eth if agent_addresses else 0)
+                    total_needed = total_required_agents + safe_req
+
+                    if total_actual >= total_needed:
+                        print(f"\n✅ Funding adequate")
+                    else:
+                        shortfall = total_needed - total_actual
+                        print(f"\n⚠️  Funding shortfall: {wei_to_eth(shortfall)} ETH")
+        except Exception as e:
+            print(f"Could not load funding requirements: {e}")
 
         # Summary
         print_header("SUMMARY")
