@@ -20,11 +20,11 @@
         }
     },
     "env_variables": {
-        "CONNECTION_CONFIGS_CONFIG_SAFE_CONTRACT_ADDRESSES": {
-            "name": "Safe contract addresses",
-            "description": "JSON string of Safe addresses per chain",
+        "SAFE_CONTRACT_ADDRESSES": {
+            "name": "Multisig Addresses",
+            "description": "Multisig addresses as a JSON dict like {'chain': '0x1234...', ...}",
             "value": "",
-            "provision_type": "user"
+            "provision_type": "computed"
         },
         "MONITORED_DAOS": {
             "name": "Monitored DAOs",
@@ -40,39 +40,27 @@
         },
         "BASE_RPC_URL": {
             "name": "Base RPC URL",
-            "description": "Use to run with docker",
-            "value": "http://host.docker.internal:8545",
+            "description": "Provide an RPC URL for Base network",
+            "value": "https://mainnet.base.org/",
             "provision_type": "user"
         },
         "BASE_LEDGER_RPC": {
             "name": "Base RPC URL",
-            "description": "Use to run with docker",
-            "value": "http://host.docker.internal:8545",
-            "provision_type": "user"
-        },
-        "CONNECTION_CONFIGS_CONFIG_SNAPSHOT_GRAPHQL_ENDPOINT": {
-            "name": "SNAPSHOT_GRAPHQL_ENDPOINT",
-            "description": "The GraphQL endpoint for Snapshot's testnet.",
-            "value": "https://testnet.hub.snapshot.org/graphql",
-            "provision_type": "user"
-        },
-        "CONNECTION_CONFIGS_CONFIG_SNAPSHOT_HUB_URL": {
-            "name": "SNAPSHOT_HUB_URL",
-            "description": "The URL for Snapshot's testnet hub.",
-            "value": "https://testnet.seq.snapshot.org/",
+            "description": "Provide an RPC URL for Base network (use same as BASE_RPC_URL if unsure)",
+            "value": "https://mainnet.base.org/",
             "provision_type": "user"
         },
         "SNAPSHOT_GRAPHQL_ENDPOINT": {
-            "name": "SNAPSHOT_GRAPHQL_ENDPOINT",
-            "description": "The GraphQL endpoint for Snapshot's testnet.",
+            "name": "Snapshot Endpoint",
+            "description": "The GraphQL endpoint for Snapshot's testnet. If unsure, leave it as is.",
             "value": "https://testnet.hub.snapshot.org/graphql",
-            "provision_type": "computed"
+            "provision_type": "user"
         },
         "SNAPSHOT_HUB_URL": {
-            "name": "SNAPSHOT_HUB_URL",
-            "description": "The URL for Snapshot's testnet hub.",
+            "name": "Snapshot Hbub URL",
+            "description": "The URL for Snapshot's testnet hub. If unsure, leave it as is.",
             "value": "https://testnet.seq.snapshot.org/",
-            "provision_type": "computed"
+            "provision_type": "user"
         },
         "EAS_SCHEMA_UID": {
             "name": "EAS_SCHEMA_UID",
