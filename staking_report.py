@@ -18,6 +18,7 @@ SCRIPT_PATH = Path(__file__).resolve().parent
 
 # Contract addresses
 ATTESTATION_TRACKER = "0x9BC8c713a159a028aC5590ffE42DaF0d9A6467AC"
+ACTIVITY_CHECKER = "0x747262cC12524C571e08faCb6E6994EF2E3B97ab"
 EAS_CONTRACT = "0xF095fE4b23958b08D38e52d5d5674bBF0C03cbF6"
 OLAS_TOKEN = "0x54330d28ca3357F294334BDC454a032e7f353416"
 
@@ -61,6 +62,20 @@ STAKING_ABI = [
         "stateMutability": "view",
         "type": "function"
     },
+    {
+        "inputs": [],
+        "name": "livenessPeriod",
+        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "minStakingDeposit",
+        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
 ]
 
 OLAS_ABI = [
@@ -72,6 +87,8 @@ OLAS_ABI = [
         "type": "function"
     }
 ]
+
+ACTIVITY_CHECKER_ABI = [{"inputs":[{"internalType":"address","name":"_quorumTracker","type":"address"},{"internalType":"uint256","name":"_livenessRatio","type":"uint256"}],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[],"name":"ZeroAddress","type":"error"},{"inputs":[],"name":"ZeroValue","type":"error"},{"inputs":[{"internalType":"address","name":"multisig","type":"address"}],"name":"getMultisigNonces","outputs":[{"internalType":"uint256[]","name":"nonces","type":"uint256[]"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256[]","name":"curNonces","type":"uint256[]"},{"internalType":"uint256[]","name":"lastNonces","type":"uint256[]"},{"internalType":"uint256","name":"ts","type":"uint256"}],"name":"isRatioPass","outputs":[{"internalType":"bool","name":"ratioPass","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"livenessRatio","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"quorumTracker","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}]
 
 ATTESTATION_TRACKER_ABI = [
   {
@@ -397,15 +414,14 @@ def get_agent_addresses(service_dir: Path) -> list[str]:
 
 def print_header(text: str):
     """Print a section header."""
-    print("\n" + "=" * 60)
-    print(f"  {text}")
-    print("=" * 60)
+    print(f"\n{text}")
+    print("=" * 80)
 
 
 def print_subheader(text: str):
     """Print a subsection header."""
     print(f"\n{text}")
-    print("-" * 40)
+    print("-" * 80)
 
 
 def main():
@@ -424,9 +440,16 @@ def main():
     chain_data = chain_config.get("chain_data", {})
     ledger_config = chain_config.get("ledger_config", {})
 
-    service_id = chain_data.get("token")
-    multisig = "0x36Da714086a53F7658408D2e8a049a17eb4A90D5"
-    staking_contract_addr = chain_data.get("user_params", {}).get("staking_program_id")
+    # Allow override for testing
+    service_id = os.getenv("TEST_SERVICE_ID") or chain_data.get("token")
+    if service_id:
+        service_id = int(service_id)
+
+    staking_contract_addr = os.getenv("STAKING_CONTRACT_ADDRESS") or chain_data.get("user_params", {}).get("staking_program_id")
+
+    # If staking is not enabled, use the default staking contract
+    if not staking_contract_addr or staking_contract_addr == "no_staking":
+        staking_contract_addr = "0xeF662b5266db0AeFe55554c50cA6Ad25c1DA16fb"
 
     # Get agent addresses
     agent_addresses = get_agent_addresses(service_dir) if service_dir else []
@@ -439,8 +462,8 @@ def main():
         print("Set BASE_LEDGER_RPC environment variable or ensure it's in service config")
         sys.exit(1)
 
-    if not all([service_id, multisig, staking_contract_addr]):
-        print("Error: Missing required configuration (service_id, multisig, or staking_contract)")
+    if not all([service_id, staking_contract_addr]):
+        print("Error: Missing required configuration (service_id or staking_contract)")
         sys.exit(1)
 
     # Connect to blockchain
@@ -455,30 +478,15 @@ def main():
 
     # Initialize contracts
     tracker = w3.eth.contract(address=ATTESTATION_TRACKER, abi=ATTESTATION_TRACKER_ABI)
+    activity_checker = w3.eth.contract(address=ACTIVITY_CHECKER, abi=ACTIVITY_CHECKER_ABI)
     staking = w3.eth.contract(address=staking_contract_addr, abi=STAKING_ABI)
     olas = w3.eth.contract(address=OLAS_TOKEN, abi=OLAS_ABI)
 
-    # Start report
-    print_header("STAKING PERFORMANCE REPORT")
-
-    # Service Information
-    print_subheader("Service Information")
-    print(f"Service ID:         {service_id}")
-    print(f"Multisig:           {multisig}")
-    print(f"Staking Contract:   {staking_contract_addr}")
-
-    # Get staking state
+    # Get staking state first
     try:
         staking_state = staking.functions.getStakingState(service_id).call()
         state_name = STAKING_STATES.get(staking_state, f"Unknown ({staking_state})")
-
-        print_subheader("Staking Status")
-        print(f"Current State:      {state_name}")
-
-        if staking_state == 0:  # Unstaked
-            print("\n⚠️  Service is not currently staked.")
-            print("   Run: ./stake_service.sh configs/config_quorum.json")
-            return
+        is_staked = staking_state == 1
 
         # Get service info
         service_info = staking.functions.getServiceInfo(service_id).call()
@@ -487,150 +495,58 @@ def main():
         nonces = service_info[2]
         stake_start_time = service_info[3]
 
-        # Use the multisig from the staking contract
-        multisig = service_multisig
+        # Use multisig from env var if provided, otherwise from staking contract
+        multisig = os.getenv("TEST_MULTISIG") or service_multisig
 
-        # Attestation activity
-        print_subheader("Attestation Activity")
-        current_attestations = tracker.functions.getNumAttestations(multisig).call()
-        baseline_attestations = nonces[1] if len(nonces) > 1 else 0
-        delta = current_attestations - baseline_attestations
+        # Get staking parameters
+        min_staking_deposit = staking.functions.minStakingDeposit().call()
 
-        print(f"Baseline (at stake): {baseline_attestations}")
-        print(f"Current count:       {current_attestations}")
-        print(f"New attestations:    {delta}")
+        # Get rewards
+        accrued_rewards = staking.functions.calculateStakingReward(service_id).call()
 
-        # Get voting stats if available
-        try:
-            voting_stats = tracker.functions.getVotingStats(multisig).call()
-            if voting_stats:
-                print(f"\nVoting statistics:")
-                # Note: The AttestationTracker contract returns [attestationCount, attestationCount, 0]
-                # These represent: [Voting Decision, voting opportunities, no voting opportunities]
-                # NOT individual vote choices (For/Against/Abstain)
-                vote_labels = ["Voting Decision", "Voting opportunities", "No voting opportunities"]
-                for i, count in enumerate(voting_stats[:3]):
-                    label = vote_labels[i] if i < len(vote_labels) else f"Stat {i}"
-                    print(f"  {label}: {count}")
-                print(f"\nNote: The contract tracks attestation counts, not individual vote choices.")
-        except Exception:
-            pass  # Voting stats not available
+        # Get current nonces from activity checker
+        current_nonces = activity_checker.functions.getMultisigNonces(multisig).call()
 
-        # Liveness check
-        print_subheader("Liveness Check")
+        # Calculate attestations in current epoch (using multisig nonce at index 0)
+        delta_attestations = current_nonces[0] - nonces[0]
+
+        # Calculate liveness check using isRatioPass
         current_time = w3.eth.get_block('latest')['timestamp']
         time_elapsed = current_time - stake_start_time
-        hours_elapsed = time_elapsed / 3600
-        days_elapsed = time_elapsed / 86400
+        liveness_pass = activity_checker.functions.isRatioPass(current_nonces, nonces, time_elapsed).call()
 
-        print(f"Staked since:        {stake_start_time}")
-        print(f"Time elapsed:        {int(hours_elapsed)} hours ({days_elapsed:.1f} days)")
-
-        # Calculate liveness ratio
-        # Threshold: 1 attestation per 24 hours (from staking contract logic)
-        threshold = 11574074074074
-        ratio = (delta * 10**18) // time_elapsed if time_elapsed > 0 else 0
-        passes = ratio >= threshold
-
-        print(f"\nLiveness ratio:      {ratio:,}")
-        print(f"Required threshold:  {threshold:,}")
-        print(f"Status:              {'✅ PASS' if passes else '❌ FAIL'}")
-
-        if not passes and time_elapsed > 0:
-            needed = ((threshold * time_elapsed) // 10**18) - delta + 1
-            print(f"\nAttestations needed: {needed}")
-            rate_per_day = threshold * 86400 / 10**18
-            print(f"Required rate:       {rate_per_day:.1f} attestations/day")
-
-        # Rewards
-        print_subheader("Staking Rewards")
-        try:
-            accrued_rewards = staking.functions.calculateStakingReward(service_id).call()
-            available_rewards = staking.functions.availableRewards().call()
-
-            print(f"Accrued rewards:     {wei_to_olas(accrued_rewards)} OLAS")
-            print(f"Available in pool:   {wei_to_olas(available_rewards)} OLAS")
-
-            if accrued_rewards > 0:
-                print(f"\n✅ You have rewards to claim!")
-                print(f"   Run: ./claim_staking_rewards.sh configs/config_quorum.json")
-            else:
-                print(f"\nℹ️  No rewards accrued yet.")
-        except Exception as e:
-            print(f"Could not retrieve rewards: {e}")
-
-        # Balances
-        print_subheader("Balances")
+        # Get balances
         multisig_eth = w3.eth.get_balance(multisig)
-        multisig_olas = olas.functions.balanceOf(multisig).call()
 
-        print(f"Multisig ({multisig}):")
-        print(f"  ETH:               {wei_to_eth(multisig_eth)} ETH")
-        print(f"  OLAS:              {wei_to_olas(multisig_olas)} OLAS")
+        # Get agent info
+        agent_addresses = get_agent_addresses(service_dir) if service_dir else []
+        agent_eth = w3.eth.get_balance(agent_addresses[0]) if agent_addresses else 0
 
-        # Show agent balances
-        if agent_addresses:
-            print(f"\nAgent Balances:")
-            total_agent_eth = 0
-            for i, agent_addr in enumerate(agent_addresses):
-                agent_eth = w3.eth.get_balance(agent_addr)
-                total_agent_eth += agent_eth
-                print(f"  Agent {i} ({agent_addr}):")
-                print(f"    ETH:             {wei_to_eth(agent_eth)} ETH")
+        # Print simple report
+        print_header("Staking")
+        print(f"{'Is service staked?':<30} {'Yes' if is_staked else 'No'}")
+        print(f"{'Staking program':<30} {staking_contract_addr[:20]}...")
+        print(f"{'Staking state':<30} {state_name.upper()}")
+        print(f"{'Staked (security deposit)':<30} {wei_to_olas(min_staking_deposit)} OLAS")
+        print(f"{'Staked (agent bond)':<30} {wei_to_olas(min_staking_deposit)} OLAS")
+        print(f"{'Accrued rewards':<30} {wei_to_olas(accrued_rewards)} OLAS")
+        print(f"{'Num. txs current epoch':<30} {delta_attestations}")
+        print(f"{'Liveness check':<30} {'PASS' if liveness_pass else 'FAIL'}")
 
-            print(f"\n  Total Agent ETH:   {wei_to_eth(total_agent_eth)} ETH")
+        if not is_staked:
+            return
 
-        # Show funding requirements
-        print_subheader("Funding Requirements")
+        print_header("Service")
+        print(f"{'ID':<30} {service_id}")
+        print(f"Loading service {config.get('hash', 'unknown')}")
 
-        # Load the service config to get fund requirements
-        try:
-            config_file = SCRIPT_PATH / "configs" / "config_quorum.json"
-            if config_file.exists():
-                with open(config_file) as f:
-                    service_config = json.load(f)
-                    base_config = service_config.get("configurations", {}).get("base", {})
-                    fund_reqs = base_config.get("fund_requirements", {})
-                    eth_reqs = fund_reqs.get("0x0000000000000000000000000000000000000000", {})
+        print_header("Agent")
+        print(f"{'Address':<30} {agent_addresses[0] if agent_addresses else 'N/A'}")
+        print(f"{'Balance':<30} {wei_to_eth(agent_eth)} ETH")
 
-                    agent_req = eth_reqs.get("agent", 0)
-                    safe_req = eth_reqs.get("safe", 0)
-
-                    print(f"Per Agent:           {wei_to_eth(agent_req)} ETH")
-                    print(f"Safe:                {wei_to_eth(safe_req)} ETH")
-
-                    # Calculate if balances meet requirements
-                    num_agents = len(agent_addresses) if agent_addresses else 1
-                    total_required_agents = agent_req * num_agents
-
-                    print(f"\nTotal Required:")
-                    print(f"  Agents ({num_agents}):      {wei_to_eth(total_required_agents)} ETH")
-                    print(f"  Safe:              {wei_to_eth(safe_req)} ETH")
-                    print(f"  TOTAL:             {wei_to_eth(total_required_agents + safe_req)} ETH")
-
-                    # Check if funded adequately
-                    total_actual = multisig_eth + (total_agent_eth if agent_addresses else 0)
-                    total_needed = total_required_agents + safe_req
-
-                    if total_actual >= total_needed:
-                        print(f"\n✅ Funding adequate")
-                    else:
-                        shortfall = total_needed - total_actual
-                        print(f"\n⚠️  Funding shortfall: {wei_to_eth(shortfall)} ETH")
-        except Exception as e:
-            print(f"Could not load funding requirements: {e}")
-
-        # Summary
-        print_header("SUMMARY")
-        if staking_state == 1:  # Staked
-            if passes if 'passes' in locals() else True:
-                print("✅ Service is staked and meeting liveness requirements")
-            else:
-                print("⚠️  Service is staked but NOT meeting liveness requirements")
-                print("   Risk of eviction if activity does not increase")
-        elif staking_state == 2:  # Evicted
-            print("❌ Service has been evicted from staking")
-            print("   You can unstake and claim any accrued rewards")
+        print_header("Safe")
+        print(f"{'Address (Mode)':<30} {multisig}")
+        print(f"{'ETH Balance':<30} {wei_to_eth(multisig_eth)} ETH")
 
     except Exception as e:
         print(f"\nError retrieving staking information: {e}")
