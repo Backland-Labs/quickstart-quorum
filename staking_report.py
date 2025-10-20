@@ -455,7 +455,7 @@ def main():
     agent_addresses = get_agent_addresses(service_dir) if service_dir else []
 
     # Get RPC from environment variable, config, or use hardcoded default
-    rpc_url = os.getenv("BASE_LEDGER_RPC") or ledger_config.get("rpc") or "https://cosmopolitan-cosmological-resonance.base-mainnet.quiknode.pro/b4c827323f0a8012212429b0bd4a72a060c5373c/"
+    rpc_url = os.getenv("BASE_LEDGER_RPC") or ledger_config.get("rpc")
 
     if not rpc_url:
         print("Error: No RPC URL found.")
